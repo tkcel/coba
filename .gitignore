@@ -1,23 +1,11 @@
 # macOS
 .DS_Store
 
-# tmp の中身はトラッキングしない（フォルダだけ維持）
-tmp/*
 !tmp/.gitkeep
 
-# 生成されたファイルはトラッキングしない
-daily/*
 !daily/.gitkeep
-weekly/*
 !weekly/.gitkeep
-inbox/meetings/*
 !inbox/meetings/.gitkeep
-inbox/tasks/*
 !inbox/tasks/.gitkeep
-inbox/notes/*
 !inbox/notes/.gitkeep
-inbox/other/*
 !inbox/other/.gitkeep
-
-# knowledge/ はトラッキングする（ナレッジは共有資産）
-# decisions.md の中身は個人差があるのでローカルで管理してもOK
