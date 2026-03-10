@@ -27,8 +27,25 @@ coba/
 `/secretary` でいつでも秘書に相談できる。
 
 - 窓口として何でも相談OK
+- 判断・ルーティングを行い、適切なスキルを自動呼び出し
 - TODO管理、壁打ち、メモ、予定確認
-- 必要に応じて各スキルを自動で呼び出す
+
+## スキル一覧
+
+| コマンド | 説明 |
+|----------|------|
+| `/secretary` | 秘書（窓口・オーケストレーター） |
+| `/onboarding` | 初期セットアップ |
+| `/morning` | 朝の一括処理 |
+| `/evening` | 夕方の一括処理 |
+| `/triage-tmp` | tmp振り分け |
+| `/format-meeting` | 議事録整形 |
+| `/extract-todo` | TODO抽出 |
+| `/generate-daily` | 日次アジェンダ生成 |
+| `/generate-weekly` | 週次サマリー生成 |
+| `/capture-memo` | クイックメモ |
+| `/brainstorm` | 壁打ち・相談 |
+| `/optimize-rules` | ルール最適化 |
 
 ## 基本ルール
 
