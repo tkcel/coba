@@ -20,7 +20,7 @@ COBAへようこそ！
 
 ### 3. 基本情報ヒアリング（必須）
 
-1. **名前**: 「お名前を教えてください（例: 山田 太郎）」
+1. **名前**: 「お名前を教えてください」
 2. **チーム・役割**: 「どんなチームで、どんな役割をしていますか？」
 
 ### 4. MTG分類ルールの設定（任意）
@@ -205,13 +205,15 @@ keep-coding-instructions: true
 **文章中心:** 自然な文章で説明、会話的に
 **表形式:** 表を積極的に使用、比較・一覧向き
 
-### 7. settings.local.json を更新
+### 7. settings.json に outputStyle を適用
 
-生成した output-style を有効化:
+`.claude/settings.json` に `"outputStyle": "secretary"` を追加して、生成した output-style を有効化する。
+既に `outputStyle` が設定されている場合は上書きする。
 
 ```json
 {
-  "outputStyle": "secretary"
+  "outputStyle": "secretary",
+  ...
 }
 ```
 

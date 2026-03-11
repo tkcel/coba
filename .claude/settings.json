@@ -1,0 +1,20 @@
+{
+  "outputStyle": "secretary",
+  "enabledPlugins": {
+    "slack@claude-plugins-official": true
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/secretary-start.sh",
+            "statusMessage": "秘書モード起動中..."
+          }
+        ]
+      }
+    ]
+  }
+}

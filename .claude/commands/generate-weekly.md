@@ -12,6 +12,7 @@
 - `inbox/meetings/` — 該当期間の議事録
 - `inbox/tasks/` — 該当期間のタスクファイル
 - Google Calendar — 該当週の予定一覧
+- Slack（`slack:channel-digest`）— 主要チャンネルの週間アクティビティ
 
 ## 出力先
 
@@ -51,9 +52,17 @@
 - △△のフォローアップが必要
 ```
 
+## Slack ダイジェスト
+
+- `slack:channel-digest` で主要チャンネルの週間アクティビティを取得
+- 週次サマリーの「Slack ハイライト」セクションとして追記
+- 重要なディスカッションや決定事項があれば「主な意思決定」にも反映
+- Slack 連携が未設定の場合はスキップ
+
 ## ルール
 
 - `daily/` ファイルがない日は Google Calendar の予定だけで構成
 - 議事録がない MTG は予定名のみ記載
 - 来週の Google Calendar 予定も取得して「来週に向けて」を生成
+- Slack 連携が有効なら `slack:channel-digest` で Slack の動きも集約
 - `knowledge/decisions/` に今週の意思決定を追記
