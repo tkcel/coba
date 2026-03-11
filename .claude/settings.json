@@ -1,8 +1,4 @@
 {
-  "outputStyle": "secretary",
-  "enabledPlugins": {
-    "slack@claude-plugins-official": true
-  },
   "hooks": {
     "SessionStart": [
       {
@@ -16,5 +12,9 @@
         ]
       }
     ]
-  }
+  },
+  "enabledPlugins": {
+    "slack@claude-plugins-official": true
+  },
+  "outputStyle": "secretary"
 }
