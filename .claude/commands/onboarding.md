@@ -12,11 +12,27 @@ COBAへようこそ！
 いくつか質問させてください。
 ```
 
-### 2. Google Calendar 接続確認
+### 2. 外部サービス接続確認
 
+**Google Calendar:**
 - `gcal_list_calendars` を実行してカレンダー一覧を取得
 - 成功したら「カレンダー接続OK」と表示
 - 失敗したら接続方法を案内
+
+**Jira:**
+- `scripts/jira.sh myself` で接続テスト
+- 成功 → アカウントIDを `knowledge/me.md` の Jira セクションに記録、`scripts/jira.sh projects` でプロジェクト選択
+- 失敗 → 認証設定の案内:
+  1. APIトークンを発行: https://id.atlassian.com/manage-profile/security/api-tokens
+  2. `~/.config/jira/credentials` を作成:
+     ```
+     JIRA_DOMAIN=your-domain.atlassian.net
+     JIRA_EMAIL=your-email@example.com
+     JIRA_API_TOKEN=your-api-token
+     ```
+  3. `chmod 600 ~/.config/jira/credentials`
+  4. 再度 `/onboarding` で接続テスト
+- Jira を使わない場合はスキップ可能
 
 ### 3. 基本情報ヒアリング（必須）
 

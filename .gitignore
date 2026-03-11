@@ -1,6 +1,12 @@
 # macOS
 .DS_Store
 
+# Credentials / Secrets
+credentials
+*.token
+.env
+.env.*
+
 !tmp/.gitkeep
 
 !daily/.gitkeep

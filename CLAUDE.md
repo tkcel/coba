@@ -46,6 +46,10 @@ coba/
 | `/capture-memo` | クイックメモ |
 | `/brainstorm` | 壁打ち・相談 |
 | `/optimize-rules` | ルール最適化 |
+| `/jira-check` | Jira チケット確認 |
+| `/jira-create-ticket` | Jira チケット作成 |
+| `/jira-update-ticket` | Jira ステータス変更・コメント |
+| `/jira-issue` | Jira チケット詳細表示 |
 
 ## 基本ルール
 
