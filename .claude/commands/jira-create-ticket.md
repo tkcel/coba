@@ -1,92 +1,142 @@
 # /jira-create-ticket
 
-Jira にチケットを作成する。対話型で内容を確認してから起票する。
+Jira にチケットを起票する。対話形式で必要な情報を確認してから作成する。
 
 ## 引数
 
-- `$ARGUMENTS` - チケットの概要（省略時はヒアリングから開始）
+- `$ARGUMENTS` にタイトルや概要を指定できる。省略時はヒアリングから開始。
 
-## 前提確認
+## 利用可能チェック
 
-1. `scripts/jira.sh` が存在するか確認
-2. `~/.config/jira/credentials` が存在するか確認
-3. いずれかがなければ「Jira: 未設定です。`/onboarding` で設定できます」と返して終了
+実行前に `./scripts/jira.sh myself` で接続確認する。
+失敗した場合はセットアップ手順を案内して終了（`scripts/README.md` 参照）。
 
 ## フロー
 
 ### 1. 情報収集
 
-引数がある場合はそれをタイトルとして使い、不足情報をヒアリング。
-引数がない場合は最初から対話で収集。
+以下をユーザーに確認する（引数から推測できるものはデフォルト値として提示）:
 
-**収集する情報:**
-
-| 項目 | 必須 | デフォルト |
-|------|:----:|-----------|
-| プロジェクト | ○ | `knowledge/me.md` の Jira プロジェクトキー |
-| タイプ | ○ | Task |
-| タイトル | ○ | - |
-| 説明 | | 空 |
-
-**プロジェクトキーの解決:**
-1. `knowledge/me.md` の Jira セクションにプロジェクトキーがあればデフォルトとして使用
-2. なければ `./scripts/jira.sh projects` でプロジェクト一覧を取得して選択
+| 項目 | 必須 | デフォルト | 確認方法 |
+|------|:----:|-----------|----------|
+| プロジェクト | ○ | `knowledge/me.md` のメインプロジェクト | なければ `./scripts/jira.sh projects` で一覧表示して選択 |
+| 課題タイプ | ○ | Task | Task / Bug / Story / Epic から選択 |
+| タイトル | ○ | `$ARGUMENTS` から取得 | なければヒアリング |
+| 説明 | | なし | 任意。あれば追加 |
+| 親Epic | ○ | なし | `./scripts/jira.sh search "project = <KEY> AND issuetype = エピック"` で一覧表示して選択 |
+| 担当者 | ○ | `knowledge/me.md` のオーナー | 他の人の場合は `./scripts/jira.sh users "<名前>"` で検索 |
+| 期限 | ○ | なし | 日付を確認 |
+| スプリント | ○ | **進行中スプリント** | Agile API で active sprint を取得して自動設定 |
 
 ### 2. 確認
 
 ```
-以下の内容でチケットを作成します。
+以下の内容でチケットを作成します。よろしいですか？
 
-- プロジェクト: PROJ
-- タイプ: Task
-- タイトル: ○○の実装
-- 説明: ○○について...
-
-→ 作成する / 修正する / キャンセル
+| 項目 | 値 |
+|------|-----|
+| プロジェクト | PROJ |
+| タイプ | Task |
+| 親Epic | PROJ-39 (other) |
+| タイトル | ○○の対応 |
+| 説明 | △△のため対応が必要 |
+| 担当者 | 山田 太郎 |
+| 期限 | 2026-03-20 |
+| スプリント | DEVALL スプリント 1（進行中） |
 ```
-
-**「修正する」を選んだ場合:** どの項目を変更するか聞いて修正後、再度確認。
 
 ### 3. 作成
 
+`jira.sh create` は親Epic・担当者・期限・スプリントに未対応のため、REST API を直接呼び出す。
+
 ```bash
-./scripts/jira.sh create "PROJ" "Task" "○○の実装" "○○について..."
+# 認証情報読み込み
+source "$HOME/.config/jira/credentials"
+AUTH=$(printf '%s:%s' "$JIRA_EMAIL" "$JIRA_API_TOKEN" | base64)
+
+# チケット作成（parent, assignee, duedate 含む）
+curl -s -X POST \
+  -H "Authorization: Basic $AUTH" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fields": {
+      "project": { "key": "PROJ" },
+      "issuetype": { "name": "タスク" },
+      "parent": { "key": "PROJ-39" },
+      "summary": "○○の対応",
+      "description": { ... },
+      "assignee": { "accountId": "..." },
+      "duedate": "2026-03-20"
+    }
+  }' \
+  "https://${JIRA_DOMAIN}/rest/api/3/issue"
 ```
 
-### 4. 結果報告
+### 3b. スプリントに追加
+
+進行中スプリントに追加する（デフォルト動作）。
+
+```bash
+# 進行中スプリントID を取得
+# ボードID は knowledge/me.md や memory から取得。DEV の場合は 34
+curl -s -H "Authorization: Basic $AUTH" \
+  "https://${JIRA_DOMAIN}/rest/agile/1.0/board/{boardId}/sprint?state=active" | jq '.values[0].id'
+
+# スプリントに追加
+curl -s -X POST \
+  -H "Authorization: Basic $AUTH" \
+  -H "Content-Type: application/json" \
+  -d '{ "issues": ["PROJ-789"] }' \
+  "https://${JIRA_DOMAIN}/rest/agile/1.0/sprint/{sprintId}/issue"
+```
+
+### 4. 報告
 
 ```
 チケットを作成しました！
 
-🎫 PROJ-124: ○○の実装
-URL: https://domain.atlassian.net/browse/PROJ-124
+PROJ-789: ○○の対応
+https://{domain}.atlassian.net/browse/PROJ-789
+
+| 項目 | 値 |
+|------|-----|
+| 親Epic | PROJ-39 (other) |
+| 担当者 | 山田 太郎 |
+| 期限 | 2026-03-20 |
+| スプリント | DEVALL スプリント 1（進行中） |
 ```
 
-## `/extract-todo` からの呼び出し
+`knowledge/me.md` の Jira セクションからドメインを取得して URL を組み立てる。
 
-`/extract-todo` が抽出した TODO リストから呼ばれる場合:
+### 5. ダッシュボード更新
 
-- 各 TODO をチケット候補として一覧表示
-- ユーザーが選択したものを一括起票
-- プロジェクト・タイプは一括で設定、タイトルは各 TODO から自動設定
+チケット作成後、**必ず** 当日の `daily/YYYY-MM-DD.md` の TODO セクションに新チケットを追加する。
 
-```
-抽出した TODO から Jira チケットを作成しますか？
+- 担当者が自分の場合 → `🔲 未着手` セクションに追加
+- ファイルが存在しない場合 → `/generate-daily` の実行を提案
 
-1. [ ] ○○の対応（担当: 根本, 期限: 03/15）
-2. [ ] △△の確認（担当: 山田, 期限: 要確認）
-3. [ ] ××の修正（担当: 要確認, 期限: 03/20）
+## 一括起票
 
-→ 全部作成 / 番号を選択（例: 1,3） / スキップ
-```
+`/extract-todo` から呼ばれた場合、抽出された TODO リストを元に複数チケットの起票を提案できる。
 
-## エラー時の動作
-
-- API エラー: エラー内容を表示して再試行を提案
-- プロジェクトが見つからない: プロジェクト一覧を表示して再選択
+**フロー:**
+1. 抽出された TODO を一覧表示
+2. 「Jira にチケットを作成しますか？」と確認
+3. 作成対象を選択（全部 / 個別選択）
+4. 各チケットを順番に作成
+5. 結果をまとめて報告
 
 ## ルール
 
-- **チケット作成は必ずユーザー確認後に実行する**（確認なしで作成しない）
-- `.claude/rules/jira.md` のフォーマットに従う
-- 作成後は `inbox/tasks/current.md` にチケットキーを備考として記録することを提案
+- **作成前に必ずユーザーに確認する**（確認なしで作成しない）
+- `.claude/rules/jira.md` のルールに従う
+- プロジェクトキーが不明な場合は `./scripts/jira.sh projects` で確認
+- `scripts/jira.sh` が失敗した場合はエラーメッセージを表示
+- 秘書から呼ばれた場合は秘書の口調で対話
+
+## 呼び出し元
+
+| スキル | 状況 |
+|--------|------|
+| `/secretary` | 「チケット作って」「起票して」 |
+| `/extract-todo` | TODO 抽出後の Jira 起票オプション |

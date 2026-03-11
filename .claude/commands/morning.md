@@ -9,29 +9,14 @@
       ↓ ファイルがあれば
 2. [/triage-tmp] tmp → inbox 振り分け
       ↓
-3. [/generate-daily] 日次アジェンダ生成（Jiraセクション含む）
+3. [/generate-daily] 日次アジェンダ生成（Jira チケット取得含む）
       ↓
-4. [slack:channel-digest] Slack の overnight まとめ
+4. Slack 夜間キャッチアップ（slack:channel-digest）
       ↓
-5. [/jira-check my-tickets] + [/jira-check overdue] Jira 朝チェック
+5. [/jira-check morning] Jira 朝チェック
       ↓
 6. サマリー報告
 ```
-
-## Slack チャンネルダイジェスト
-
-- ビルトインスキル `slack:channel-digest` を使って、前日夜〜今朝の Slack アクティビティをまとめる
-- 重要な未読や自分宛のメンションがあれば強調する
-- Slack 連携が未設定の場合はスキップ
-
-## Jira 朝チェック
-
-以下の Jira スキルを順番に呼び出す:
-
-1. `/jira-check my-tickets` — 自分のオープンチケット一覧
-2. `/jira-check overdue` — 期限切れチケットの警告
-
-- Jira 未設定の場合はスキルがスキップを返すのでそのまま次へ進む
 
 ## サマリー報告フォーマット
 
@@ -42,8 +27,6 @@
 
 📅 予定: X件
 📋 持ち越しタスク: X件
-🎫 Jira: Xチケットオープン / Y件期限超過
-💬 Slack: X件の動きあり
 
 ### スケジュール
 | 時間 | 予定 |
@@ -53,24 +36,41 @@
 | ... |
 
 ### Jira チケット
-| キー | タイトル | ステータス | 優先度 | 期限 |
-|------|---------|----------|--------|------|
-| PROJ-123 | ○○の実装 | In Progress | High | 03/15 |
+- オープンチケット: X件
+- 昨日更新されたもの: PROJ-123 ステータス変更あり
+（※ 取得できなかった場合はこのセクションを省略）
 
-⚠️ 期限超過: PROJ-456（03/08期限）
-
-### Slack まとめ
-- #general: ○○についてのアナウンス
-- #dev: △△のPRがマージされた
-- @メンション: □□さんから質問あり
+### Slack キャッチアップ
+- #channel-a: ○○の件で議論あり
+- #channel-b: 特になし
+（※ 取得できなかった場合はこのセクションを省略）
 
 何から始めますか？
 ```
+
+## Slack キャッチアップ
+
+`slack:channel-digest` を使い、前日夜〜今朝の主要チャンネルの動きを取得する。
+
+- `knowledge/me.md` に監視チャンネルの設定があればそれを使う
+- なければユーザーに「気になるチャンネルはありますか？」と初回のみ確認
+- 重要そうなメンション・スレッドがあれば要約して報告
+- **取得した内容を `daily/YYYY-MM-DD.md` の `## Slack まとめ` セクションに書き込む**（`.claude/rules/daily.md` の「Slack まとめルール」参照）
+- Slack MCP が利用できない場合はスキップ
+
+## Jira 朝チェック
+
+`/jira-check morning` を実行する。
+
+- オープンチケット一覧と前日更新を取得
+- `daily/YYYY-MM-DD.md` の `## Jira` セクションに書き込む
+- 失敗した場合はスキップ
 
 ## ルール
 
 - `tmp/` にファイルがあれば先に振り分け
 - `/generate-daily` で今日のアジェンダを生成
 - 既に `daily/YYYY-MM-DD.md` がある場合は上書きせず確認
-- Slack 連携が有効なら `slack:channel-digest` でオーバーナイトの動きを取得
+- Jira 朝チェックは best-effort（失敗してもフロー全体は止めない）
+- Slack キャッチアップは best-effort（失敗してもフロー全体は止めない）
 - 秘書の口調で報告（`.claude/rules/secretary.md` 参照）

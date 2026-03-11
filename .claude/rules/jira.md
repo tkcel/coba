@@ -1,28 +1,21 @@
----
-paths:
-  - "scripts/jira.sh"
----
-
 # Jira 連携ルール
 
-Jira Cloud REST API との連携ルール。全スキルから参照。
+Jira Cloud REST API を `scripts/jira.sh` 経由で操作する際のルール。
 
 ## スクリプトの使い方
-
-Jira 操作は `scripts/jira.sh` を Bash ツールで実行する。
 
 ```bash
 # 自分の情報
 ./scripts/jira.sh myself
 
-# JQL検索
+# チケット検索（JQL）
 ./scripts/jira.sh search "assignee = currentUser() AND resolution = Unresolved ORDER BY priority DESC"
 
 # チケット詳細
 ./scripts/jira.sh issue PROJ-123
 
 # チケット作成
-./scripts/jira.sh create PROJ Task "タスクのタイトル" "説明文"
+./scripts/jira.sh create PROJ Task "タイトル" "説明（任意）"
 
 # 遷移先一覧
 ./scripts/jira.sh transitions PROJ-123
@@ -37,7 +30,7 @@ Jira 操作は `scripts/jira.sh` を Bash ツールで実行する。
 ./scripts/jira.sh projects
 
 # ユーザー検索
-./scripts/jira.sh users "根本"
+./scripts/jira.sh users "山田"
 ```
 
 ## よく使う JQL
@@ -47,92 +40,41 @@ Jira 操作は `scripts/jira.sh` を Bash ツールで実行する。
 | 自分の未完了チケット | `assignee = currentUser() AND resolution = Unresolved ORDER BY priority DESC` |
 | 今日更新されたチケット | `assignee = currentUser() AND updated >= startOfDay() ORDER BY updated DESC` |
 | 期限切れチケット | `assignee = currentUser() AND duedate < now() AND resolution = Unresolved` |
-| 今週完了したチケット | `assignee = currentUser() AND status changed to Done AFTER startOfWeek()` |
-| プロジェクト指定 | 上記に `AND project = <KEY>` を追加 |
+| 今週完了 | `assignee = currentUser() AND status changed to Done AFTER startOfWeek()` |
+| プロジェクト絞り込み | 上記に `AND project = <KEY>` を追加 |
 
-## knowledge/me.md の Jira セクション
+`knowledge/me.md` の Jira セクションにデフォルト JQL やプロジェクトキーの設定があればそれを使う。
 
-`knowledge/me.md` の `## Jira` セクションから以下を読み取る:
+## daily/ での Jira 表示
 
-| 項目 | 用途 |
-|------|------|
-| ドメイン | 接続先の確認 |
-| プロジェクトキー | デフォルトのプロジェクト |
-| アカウントID | JQL の `currentUser()` が使えない場合の代替 |
+Jira チケットは `daily/` の独立セクション（`## Jira`）ではなく、**TODO セクションに統合** して表示する。
+詳細は `.claude/rules/tasks.md` の「統合 TODO ダッシュボード」を参照。
 
-## チケット表示フォーマット
-
-### 一覧表示（search結果）
-
-```markdown
-| キー | タイトル | ステータス | 優先度 | 期限 |
-|------|---------|----------|--------|------|
-| PROJ-123 | ○○の実装 | In Progress | High | 03/15 |
-| PROJ-456 | △△の修正 | To Do | Medium | 03/20 |
-```
-
-### 詳細表示（issue結果）
-
-```markdown
-### PROJ-123: ○○の実装
-
-| 項目 | 値 |
-|------|-----|
-| ステータス | In Progress |
-| 優先度 | High |
-| 担当 | 根本 貴志 |
-| 期限 | 2026-03-15 |
-| 作成日 | 2026-03-01 |
-| 更新日 | 2026-03-11 |
-
-**説明:** ○○の実装を行う
-
-**直近のコメント:**
-- 山田さん (03/10): ○○について確認しました
-```
-
-## daily/ の Jira セクション
-
-`daily/YYYY-MM-DD.md` で `## 作業ブロック` と `## Slack まとめ` の間に配置。
-
-```markdown
-## Jira
-
-### オープンチケット
-| キー | タイトル | ステータス | 優先度 | 期限 |
-|------|---------|----------|--------|------|
-| PROJ-123 | ○○の実装 | In Progress | High | 03/15 |
-
-### 今日更新
-| キー | タイトル | 変更内容 |
-|------|---------|---------|
-| PROJ-789 | ××の修正 | Done に変更 |
-```
-
-## エラー時のフォールバック
-
-Jira API に接続できない・エラーが発生した場合:
-
-- `daily/` や週次サマリーでは「Jira: 取得できませんでした」と記載してスキップ
-- 秘書はエラー内容をユーザーに伝え、代替手段を提案
-- スクリプトが見つからない・認証情報がない場合は `/onboarding` の Jira セットアップを案内
+- `ソース` 列にチケットキー（`DEV-64` 等）を表示
+- ステータスはローカルのステータス体系にマッピング（`.claude/rules/tasks.md` 参照）
+- ダッシュボード表示・更新時に Jira を API 取得して最新化する
+- Jira 取得できなかった場合はローカルタスクのみ表示し「Jira: 取得できませんでした」と注記
 
 ## 破壊的操作の確認
 
-以下の操作は **必ずユーザーに確認してから** 実行する:
+以下の操作は必ずユーザーに確認してから実行する:
 
 - チケット作成（`create`）
 - ステータス変更（`transition`）
 - コメント追加（`comment`）
 
-確認フォーマット例:
-```
-以下の内容でチケットを作成しますか？
+検索・閲覧系（`search`, `issue`, `transitions`, `projects`, `users`, `myself`）は確認不要。
 
-- プロジェクト: PROJ
-- タイプ: Task
-- タイトル: ○○の実装
-- 説明: ○○について...
+## エラー時の対応
 
-→ 作成する / キャンセル
-```
+- 認証エラー（exit 1）→ API トークンの確認を促す
+- リソースなし（exit 2）→ チケットキーの確認を促す
+- レート制限（exit 3）→ スクリプトが自動リトライ。それでも失敗したらスキップ
+- その他（exit 4）→ エラーメッセージを表示してスキップ
+
+## COBA タスク管理との連携
+
+- Jira とローカル（`inbox/tasks/current.md`）は **別々のマスター** として管理
+- `daily/` の TODO セクションで統合ビューとして1つのテーブルに表示
+- Jira → ローカルへのコピーや自動同期はしない
+- ローカルタスクを Jira に起票したい場合は `/jira-create-ticket` を使う

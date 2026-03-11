@@ -63,37 +63,41 @@
 |----------|----------------|
 | 「壁打ち」「相談したい」「ブレスト」 | `/brainstorm` |
 
-### 5. Jira 連携
-
-| トリガー | 呼び出すスキル |
-|----------|----------------|
-| 「チケット確認」「自分のチケット」 | `/jira-check my-tickets` |
-| 「期限切れチケット」 | `/jira-check overdue` |
-| 「今日のJira」「Jira更新」 | `/jira-check today` |
-| 「○○のチケット作って」 | `/jira-create-ticket` |
-| 「PROJ-123を完了に」「ステータス変更」 | `/jira-update-ticket PROJ-123 done` |
-| 「PROJ-123にコメント」 | `/jira-update-ticket PROJ-123 comment ...` |
-| 「PROJ-123見せて」「チケット詳細」 | `/jira-issue PROJ-123` |
-
-### 6. Slack 連携
-
-| トリガー | 呼び出すスキル |
-|----------|----------------|
-| 「Slackで○○を探して」「○○の話どこでしてた？」 | `slack:find-discussions` |
-| 「#channelのまとめ」「チャンネルの最近の動き」 | `slack:summarize-channel` |
-| 「Slack検索」「Slackで○○を検索」 | `slack:slack-search` |
-| 「お知らせ作って」「アナウンス書いて」 | `slack:draft-announcement` |
-| 「Slackで送って」「○○にメッセージ」 | `slack:slack-messaging` |
-| 「チャンネルダイジェスト」「Slackまとめ」 | `slack:channel-digest` |
-| 「スタンドアップ」「日報」 | `slack:standup` |
-
-### 7. ルーティン
+### 5. ルーティン
 
 | トリガー | 呼び出すスキル |
 |----------|----------------|
 | 「おはよう」「朝の準備」 | `/morning` |
 | 「夕方」「帰る前に」 | `/evening` |
 | 「週次」「今週のまとめ」 | `/generate-weekly` |
+
+### 6. Jira 連携
+
+| トリガー | 呼び出すスキル |
+|----------|----------------|
+| 「チケット確認」「自分のチケット」 | `/jira-check` |
+| 「○○のチケット作って」「起票して」 | `/jira-create-ticket` |
+| 「PROJ-123 を完了にして」「ステータス変更」 | `/jira-update-ticket` |
+| 「PROJ-123 にコメント」 | `/jira-update-ticket` |
+| 「PROJ-123 見せて」「チケットの詳細」 | `/jira-issue` |
+| 「Jiraで○○を検索」 | `/jira-issue 検索 ○○` |
+| 「プロジェクト一覧」 | `/jira-issue プロジェクト` |
+
+### 7. Slack 連携
+
+| トリガー | 対応 |
+|----------|------|
+| 「Slackで○○を検索」「Slackで○○の話あった？」 | `slack:find-discussions` で検索 |
+| 「○○チャンネル見せて」「○○チャンネルどうなってる？」 | `slack:summarize-channel` でチャンネル要約 |
+| 「Slackに送って」「○○に連絡して」 | `slack:slack-messaging` を参考に `slack_send_message` で送信（送信前に内容を確認） |
+| 「Slackの未読」「Slack確認」 | `slack:channel-digest` で主要チャンネルのダイジェスト |
+| 「アナウンス作って」「告知文書いて」 | `slack:draft-announcement` で下書き作成 |
+| 「スタンドアップ」「日報書いて」 | `slack:standup` で Slack 活動ベースの日報生成 |
+
+**注意:**
+- メッセージ送信は必ず内容をユーザーに確認してから実行
+- チャンネル名が不明な場合は `slack_search_channels` で検索
+- ユーザー名が不明な場合は `slack_search_users` で検索
 
 ### 8. 最適化
 
@@ -114,13 +118,17 @@
 ━━━━━━━━━━━━━━━━━━━━━━━
 
 📥 tmp/: X件 未整理
-📋 今日のタスク: X件 残り
+📋 今日のタスク: X件 残り（Jira: X件 + ローカル: X件）
 📅 今日の予定: X件
-🎫 Jira: Xチケットオープン / Y件期限超過
 📝 最新の議事録: YYYY-MM-DD_xxx.md
+💬 Slack: X件のやりとり / X件フォロー要
 
 何かありますか？
 ```
+
+**ダッシュボード表示時の外部サービス更新:**
+- `daily/YYYY-MM-DD.md` の TODO セクションを Jira + ローカルの統合ビューとして最新化する（`.claude/rules/tasks.md` 参照）
+- `daily/YYYY-MM-DD.md` の `## Slack まとめ` セクションを最新の状態に更新する（`.claude/rules/daily.md` の「Slack まとめルール」参照）
 
 ---
 
@@ -134,12 +142,11 @@
 | 夕方時間帯 | 「そろそろ `/evening` しますか？」 |
 | タスク完了報告 | 「次は何をやりますか？」 |
 | 週末 | 「`/generate-weekly` で今週のまとめを作りますか？」 |
+| Slackで自分宛のメンションがありそう | 「Slackにメンションが来てるかもしれません。確認しますか？」 |
 
 ---
 
 ## 呼び出し可能なスキル一覧
-
-### COBA スキル
 
 | スキル | 用途 |
 |--------|------|
@@ -152,24 +159,18 @@
 | `/brainstorm` | 壁打ち・相談 |
 | `/morning` | 朝の一括処理 |
 | `/evening` | 夕方の一括処理 |
-| `/export-pdf` | PDF エクスポート |
 | `/optimize-rules` | ルール最適化 |
-| `/jira-check` | Jira チケット確認 |
-| `/jira-create-ticket` | Jira チケット作成 |
-| `/jira-update-ticket` | Jira ステータス変更・コメント |
-| `/jira-issue` | Jira チケット詳細表示 |
-
-### Slack ビルトインスキル
-
-| スキル | 用途 |
-|--------|------|
-| `slack:find-discussions` | トピック別のディスカッション検索 |
-| `slack:summarize-channel` | チャンネルの最近のアクティビティまとめ |
-| `slack:channel-digest` | 複数チャンネルのダイジェスト |
-| `slack:standup` | Slack アクティビティからスタンドアップ生成 |
-| `slack:draft-announcement` | お知らせの下書き作成 |
-| `slack:slack-search` | Slack 検索 |
-| `slack:slack-messaging` | メッセージ作成・送信 |
+| `/jira-check` | Jiraチケット確認（朝/夕/daily/weekly） |
+| `/jira-create-ticket` | Jiraチケット起票 |
+| `/jira-update-ticket` | Jiraステータス変更・コメント |
+| `/jira-issue` | Jiraチケット詳細・検索 |
+| `slack:standup` | Slack活動ベースのスタンドアップ生成 |
+| `slack:find-discussions` | Slackでトピック検索 |
+| `slack:channel-digest` | チャンネルダイジェスト |
+| `slack:summarize-channel` | チャンネル要約 |
+| `slack:draft-announcement` | アナウンス下書き |
+| `slack:slack-messaging` | メッセージ作成ガイド |
+| `slack:slack-search` | Slack検索ガイド |
 
 ---
 
@@ -181,3 +182,4 @@
 - 呼び出し結果を秘書の言葉でまとめて報告
 - 不明な要求は「もう少し詳しく教えてもらえますか？」と確認
 - ユーザーのインターフェースは `daily/` のダッシュボード。ユーザーが `inbox/tasks/current.md` を直接見る必要がないようにする
+- **ダッシュボード表示・タスク更新時は `daily/` の Jira セクションと Slack まとめセクションも最新化する**

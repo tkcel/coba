@@ -19,20 +19,17 @@ COBAへようこそ！
 - 成功したら「カレンダー接続OK」と表示
 - 失敗したら接続方法を案内
 
+**Slack:**
+- `slack_search_channels` で適当なチャンネルを検索して接続確認
+- 成功したら「Slack接続OK」と表示し、よく使うチャンネルをヒアリング
+- 失敗したら「Slack連携は後から設定できます」と案内
+- 監視チャンネル（`/morning` で確認するチャンネル）を `knowledge/me.md` に記録
+
 **Jira:**
-- `scripts/jira.sh myself` で接続テスト
-- 成功 → アカウントIDを `knowledge/me.md` の Jira セクションに記録、`scripts/jira.sh projects` でプロジェクト選択
-- 失敗 → 認証設定の案内:
-  1. APIトークンを発行: https://id.atlassian.com/manage-profile/security/api-tokens
-  2. `~/.config/jira/credentials` を作成:
-     ```
-     JIRA_DOMAIN=your-domain.atlassian.net
-     JIRA_EMAIL=your-email@example.com
-     JIRA_API_TOKEN=your-api-token
-     ```
-  3. `chmod 600 ~/.config/jira/credentials`
-  4. 再度 `/onboarding` で接続テスト
-- Jira を使わない場合はスキップ可能
+- `./scripts/jira.sh myself` を実行して接続確認
+- 成功したら「Jira接続OK」と表示し、アカウントIDを `knowledge/me.md` に記録
+- `./scripts/jira.sh projects` でプロジェクト一覧を取得し、メインプロジェクトをヒアリング
+- 失敗したら認証設定の案内を表示（`scripts/README.md` のセットアップ手順を参照）
 
 ### 3. 基本情報ヒアリング（必須）
 
@@ -261,46 +258,26 @@ keep-coding-instructions: true
 | フォーマット | 箇条書き中心 |
 ```
 
-### 9. ワークスペースのパーソナライズ
+### 9. スキル内の例文をパーソナライズ
 
-1. **README.md を COBA_README.md にリネーム**
-   - 元のCOBAの説明書を保存しておく
+me.md に書き込んだオーナー情報を使って、スキル・ルール内のプレースホルダ例文をユーザーの実際の情報に書き換える。
 
-2. **新しい README.md を作成**
-   - そのユーザー専用のワークスペース README を生成
+**対象ファイルと書き換え箇所:**
 
-```markdown
-# {{オーナー名}}'s Workspace
+| ファイル | 書き換え内容 |
+|----------|------------|
+| `.claude/commands/jira-create-ticket.md` | 担当者の例名（`山田 太郎` → ユーザー名） |
+| `.claude/commands/jira-issue.md` | 担当者・コメント内の例名（`山田 太郎` / `山田` → ユーザー名） |
+| `.claude/rules/jira.md` | ユーザー検索例（`"山田"` → ユーザー名） |
+| `.claude/rules/tasks.md` | 担当者列の例（`自分` はそのまま。必要なら書き換え） |
+| `scripts/README.md` | ユーザー検索例、接続テスト出力例の名前・メール |
 
-{{秘書名}}と一緒に仕事をするワークスペース。
-
-## 使い方
-
-```
-/secretary
-```
-
-{{秘書名}}に何でも相談できる。
-
-## よく使うコマンド
-
-| コマンド | 説明 |
-|----------|------|
-| `/secretary` | {{秘書名}}を呼ぶ |
-| `/morning` | 朝の準備（アジェンダ生成） |
-| `/evening` | 夕方整理 |
-
-## フォルダ
-
-- `tmp/` - ここにファイルを落とす
-- `inbox/` - 整理されたファイル
-- `daily/` - 日次アジェンダ
-- `knowledge/` - 蓄積ナレッジ
-
----
-
-COBAについて詳しくは [COBA_README.md](./COBA_README.md) を参照。
-```
+**書き換えルール:**
+- `山田 太郎`（フルネーム例）→ ユーザーの実際のフルネーム
+- `山田`（姓のみの例）→ ユーザーの実際の姓
+- `you@example.com` → ユーザーの実際のメールアドレス（me.md にあれば）
+- `your-company.atlassian.net` → ユーザーの実際の Jira ドメイン（me.md にあれば）
+- Jira/Confluence 接続テストが成功していれば、出力例もそのユーザーの実際の値に更新
 
 ### 10. 完了メッセージ
 

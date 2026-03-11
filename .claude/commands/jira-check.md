@@ -1,135 +1,103 @@
 # /jira-check
 
-Jira チケットの状況を確認する。引数でモードを切り替え、各スキルから呼び出される。
+Jira チケットの状況を確認し、daily/weekly に書き込む。引数でモードを切り替える。
 
 ## 引数
 
-- `$ARGUMENTS` - モード指定（省略時は `my-tickets`）
+- `$ARGUMENTS` でモードを指定。省略時は `morning`。
+  - `morning` — オープンチケット一覧 + 前日更新（朝のチェック用）
+  - `evening` — 今日更新されたチケット + ステータス変更提案（夕方まとめ用）
+  - `daily` — daily に書き込む Jira セクション生成（/generate-daily 用）
+  - `weekly` — 今週の完了・新規・進行中を集計（/generate-weekly 用）
+  - `overdue` — 期限切れチケット一覧
 
-| モード | 説明 | 呼び出し元 |
-|--------|------|-----------|
-| `my-tickets` | 自分のオープンチケット一覧 | `/secretary`, `/morning` |
-| `overdue` | 期限切れチケット | `/morning`, `/secretary` |
-| `today` | 今日更新されたチケット | `/evening`, `/generate-daily` |
-| `daily` | daily 用 Jira セクション生成 | `/generate-daily` |
-| `weekly` | 週次 Jira サマリー生成 | `/generate-weekly` |
+## 利用可能チェック
 
-## 前提確認
-
-1. `scripts/jira.sh` が存在するか確認
-2. `~/.config/jira/credentials` が存在するか確認
-3. いずれかがなければ「Jira: 未設定です。`/onboarding` で設定できます」と返して終了
+実行前に `./scripts/jira.sh myself` で接続確認する。
+失敗した場合は「Jira: 取得できませんでした」と報告してスキップ。
 
 ## モード別の動作
 
-### `my-tickets`（デフォルト）
+### morning（デフォルト）
 
-```bash
-./scripts/jira.sh search "assignee = currentUser() AND resolution = Unresolved ORDER BY priority DESC"
+**実行する JQL:**
+- オープンチケット: `assignee = currentUser() AND resolution = Unresolved ORDER BY priority DESC`
+- 前日更新: `assignee = currentUser() AND updated >= startOfDay("-1d") ORDER BY updated DESC`
+
+**出力:**
+```
+### Jira チケット
+- オープンチケット: X件
+- 昨日更新されたもの: PROJ-123 ステータス変更あり
 ```
 
-**出力フォーマット:**
+**daily 更新:** `daily/YYYY-MM-DD.md` の TODO セクションを Jira + ローカルの統合ビューとして更新する。
 
-```markdown
-### オープンチケット（X件）
-| キー | タイトル | ステータス | 優先度 | 期限 |
-|------|---------|----------|--------|------|
-| PROJ-123 | ○○の実装 | In Progress | High | 03/15 |
-| PROJ-456 | △△の修正 | To Do | Medium | 03/20 |
+### evening
+
+**実行する JQL:**
+- 今日更新: `assignee = currentUser() AND updated >= startOfDay() ORDER BY updated DESC`
+- オープン: `assignee = currentUser() AND resolution = Unresolved ORDER BY priority DESC`
+
+**出力:**
+```
+### Jira
+- 担当チケット: X件（うち今日更新: X件）
+- ステータス変更の提案: PROJ-123 → Done にしますか？
 ```
 
-チケットがない場合: 「オープンチケットはありません」
+**追加アクション:**
+- 今日のMTGや作業に関連するチケットのステータス変更を提案
+- ステータス変更はユーザー確認後に `/jira-update-ticket` で実行
+- `daily/YYYY-MM-DD.md` の TODO セクションを統合ビューとして最終更新
 
-### `overdue`
+### daily
 
-```bash
-./scripts/jira.sh search "assignee = currentUser() AND duedate < now() AND resolution = Unresolved ORDER BY duedate ASC"
-```
+**実行する JQL:**
+- オープンチケット: `assignee = currentUser() AND resolution = Unresolved ORDER BY priority DESC`
+- 今日完了: `assignee = currentUser() AND status changed to Done AFTER startOfDay() ORDER BY updated DESC`
 
-**出力フォーマット:**
+**出力:** Jira チケットを取得し、`daily/YYYY-MM-DD.md` の TODO セクションにローカルタスクと統合して表示する。
+独立した `## Jira` セクションは作らない（`.claude/rules/tasks.md` の統合ビュー参照）。
 
-```markdown
-### ⚠️ 期限超過チケット（X件）
-| キー | タイトル | 期限 | 超過日数 |
-|------|---------|------|---------|
-| PROJ-456 | △△の修正 | 03/08 | 3日 |
-```
+### weekly
 
-チケットがない場合: 「期限超過チケットはありません」
+**実行する JQL:**
+- 今週完了: `assignee = currentUser() AND status changed to Done AFTER startOfWeek() ORDER BY updated DESC`
+- 今週新規: `assignee = currentUser() AND created >= startOfWeek() ORDER BY created DESC`
+- 進行中: `assignee = currentUser() AND resolution = Unresolved ORDER BY priority DESC`
 
-### `today`
-
-```bash
-./scripts/jira.sh search "assignee = currentUser() AND updated >= startOfDay() ORDER BY updated DESC"
-```
-
-**出力フォーマット:**
-
-```markdown
-### 今日更新されたチケット（X件）
-| キー | タイトル | ステータス | 更新日時 |
-|------|---------|----------|---------|
-| PROJ-123 | ○○の実装 | Done | 15:30 |
-| PROJ-789 | ××の調査 | In Progress | 10:00 |
-```
-
-チケットがない場合: 「今日更新されたチケットはありません」
-
-### `daily`
-
-`my-tickets` + `today` を組み合わせて、daily 用の Jira セクションを生成。
-
-**出力フォーマット:**
-
-```markdown
-## Jira
-
-### オープンチケット
-| キー | タイトル | ステータス | 優先度 | 期限 |
-|------|---------|----------|--------|------|
-| PROJ-123 | ○○の実装 | In Progress | High | 03/15 |
-
-### 今日更新
-| キー | タイトル | 変更内容 |
-|------|---------|---------|
-| PROJ-789 | ××の修正 | Done に変更 |
-```
-
-### `weekly`
-
-```bash
-# 今週完了
-./scripts/jira.sh search "assignee = currentUser() AND status changed to Done AFTER startOfWeek()"
-# 期限超過
-./scripts/jira.sh search "assignee = currentUser() AND duedate < now() AND resolution = Unresolved"
-```
-
-**出力フォーマット:**
-
+**出力フォーマット（weekly に書き込む形式）:**
 ```markdown
 ## Jira サマリー
-- 今週完了: XX件
-- オーバーデュー: XX件
-
-### 完了チケット
-| キー | タイトル | 完了日 |
-|------|---------|--------|
-| PROJ-123 | ○○の実装 | 03/10 |
-
-### オーバーデュー
-| キー | タイトル | 期限 |
-|------|---------|------|
-| PROJ-456 | △△の修正 | 03/08 |
+- チケット完了: X件
+- チケット新規: X件
+- 進行中: X件
 ```
 
-## エラー時の動作
+### overdue
 
-- API エラー: 「Jira: 取得できませんでした」と出力してスキップ
-- 認証エラー (exit code 1): 「Jira: 認証エラーです。APIトークンを確認してください」
-- エラーが発生しても呼び出し元のスキルの実行は止めない
+**実行する JQL:**
+- `assignee = currentUser() AND duedate < now() AND resolution = Unresolved ORDER BY duedate ASC`
 
-## ルール
+**出力:**
+期限切れチケットの一覧をテーブル形式で表示。
 
-- `.claude/rules/jira.md` のフォーマットに従う
+## 共通ルール
+
+- `knowledge/me.md` の Jira セクションにメインプロジェクトの設定があれば `AND project = <KEY>` を追加
+- `.claude/rules/jira.md` のルールに従う
+- `.claude/rules/tasks.md` の統合ビュールールに従って daily の TODO セクションを更新
+- `scripts/jira.sh` が失敗した場合はスキップ（フロー全体は止めない）
 - 秘書から呼ばれた場合は秘書の口調で報告
-- 他スキルから呼ばれた場合はそのまま Markdown を返す
+
+## 呼び出し元
+
+| スキル | モード |
+|--------|--------|
+| `/morning` | `morning` |
+| `/evening` | `evening` |
+| `/generate-daily` | `daily` |
+| `/generate-weekly` | `weekly` |
+| `/secretary`（ダッシュボード） | `daily` |
+| `/secretary`（チケット確認） | `morning` or 引数なし |

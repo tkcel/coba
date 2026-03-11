@@ -29,6 +29,7 @@ coba/
 - 窓口として何でも相談OK
 - 判断・ルーティングを行い、適切なスキルを自動呼び出し
 - TODO管理、壁打ち、メモ、予定確認
+- Jiraチケット操作（`scripts/jira.sh`）、Slack連携
 
 ## スキル一覧
 
@@ -46,10 +47,6 @@ coba/
 | `/capture-memo` | クイックメモ |
 | `/brainstorm` | 壁打ち・相談 |
 | `/optimize-rules` | ルール最適化 |
-| `/jira-check` | Jira チケット確認 |
-| `/jira-create-ticket` | Jira チケット作成 |
-| `/jira-update-ticket` | Jira ステータス変更・コメント |
-| `/jira-issue` | Jira チケット詳細表示 |
 
 ## 基本ルール
 

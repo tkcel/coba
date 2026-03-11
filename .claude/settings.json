@@ -1,8 +1,12 @@
 {
+  "outputStyle": "secretary",
+  "enabledPlugins": {
+    "slack@claude-plugins-official": true
+  },
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup|resume",
+        "matcher": "startup|resume|clear",
         "hooks": [
           {
             "type": "command",
@@ -12,9 +16,5 @@
         ]
       }
     ]
-  },
-  "enabledPlugins": {
-    "slack@claude-plugins-official": true
-  },
-  "outputStyle": "secretary"
+  }
 }
